@@ -36,13 +36,12 @@ services:
       - ENABLE_METRICS=true
       - ENABLE_HEALTH_CHECK=true
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.highlighter-api.rule=Host(`nexbit.dev`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.highlighter-api.entrypoints=websecure"
-      - "traefik.http.routers.highlighter-api.tls.certresolver=letsencrypt"
-      - "traefik.http.services.highlighter-api.loadbalancer.server.port=4000"
-      - "traefik.http.middlewares.api-stripprefix.stripprefix.prefixes=/api"
-      - "traefik.http.routers.highlighter-api.middlewares=api-stripprefix"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.highlighter-api.rule=Host(`nexbit.dev`) && PathPrefix(`/api`)'
+      - 'traefik.http.routers.highlighter-api.entrypoints=websecure'
+      - 'traefik.http.routers.highlighter-api.tls.certresolver=le'
+      - 'traefik.http.services.highlighter-api.loadbalancer.server.port=4000'
+      - 'traefik.docker.network=traefik'
     networks:
       - traefik
       - highlighter
@@ -56,12 +55,13 @@ services:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=https://nexbit.dev/api
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.highlighter-web.rule=Host(`nexbit.dev`)"
-      - "traefik.http.routers.highlighter-web.entrypoints=websecure"
-      - "traefik.http.routers.highlighter-web.tls.certresolver=letsencrypt"
-      - "traefik.http.services.highlighter-web.loadbalancer.server.port=3000"
-      - "traefik.http.routers.highlighter-web.priority=1"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.highlighter-web.rule=Host(`nexbit.dev`)'
+      - 'traefik.http.routers.highlighter-web.entrypoints=websecure'
+      - 'traefik.http.routers.highlighter-web.tls.certresolver=le'
+      - 'traefik.http.services.highlighter-web.loadbalancer.server.port=3000'
+      - 'traefik.http.routers.highlighter-web.priority=1'
+      - 'traefik.docker.network=traefik'
     networks:
       - traefik
       - highlighter
@@ -69,6 +69,8 @@ services:
   postgres:
     image: postgres:15-alpine
     restart: unless-stopped
+    ports:
+      - '5432:5432'
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -79,7 +81,7 @@ services:
     networks:
       - highlighter
     labels:
-      - "traefik.enable=false"
+      - 'traefik.enable=false'
 
   redis:
     image: redis:7-alpine
@@ -90,7 +92,7 @@ services:
     networks:
       - highlighter
     labels:
-      - "traefik.enable=false"
+      - 'traefik.enable=false'
 
 volumes:
   postgres_data:
