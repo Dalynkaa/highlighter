@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  highlighter-back:
+    image: ghcr.io/${GITHUB_USERNAME}/highlighter-back:latest
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DATABASE_URL=${DATABASE_URL}
+      - CORS_ORIGIN=https://nexbit.dev,https://www.nexbit.dev
+      - COOKIE_DOMAIN=nexbit.dev
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_EXPIRES_IN=15m
+      - JWT_REFRESH_EXPIRES_IN=7d
+      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT}
+      - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
+      - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
+      - CLOUDFLARE_R2_BUCKET_NAME=${CLOUDFLARE_R2_BUCKET_NAME}
+      - CLOUDFLARE_R2_PUBLIC_URL=${CLOUDFLARE_R2_PUBLIC_URL}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      - APP_URL=https://nexbit.dev
+      - LOG_LEVEL=warn
+      - RATE_LIMIT_TTL=60
+      - RATE_LIMIT_LIMIT=30
+      - MAX_FILE_SIZE=5242880
+      - AVATAR_MAX_SIZE=2097152
+      - HELMET_ENABLED=true
+      - HTTPS_REDIRECT=true
+      - ENABLE_METRICS=true
+      - ENABLE_HEALTH_CHECK=true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.highlighter-api.rule=Host(`nexbit.dev`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.highlighter-api.entrypoints=websecure"
+      - "traefik.http.routers.highlighter-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.highlighter-api.loadbalancer.server.port=4000"
+      - "traefik.http.middlewares.api-stripprefix.stripprefix.prefixes=/api"
+      - "traefik.http.routers.highlighter-api.middlewares=api-stripprefix"
+    networks:
+      - traefik
+      - highlighter
+    depends_on:
+      - postgres
+
+  highlighter-web:
+    image: ghcr.io/${GITHUB_USERNAME}/highlighter-web:latest
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://nexbit.dev/api
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.highlighter-web.rule=Host(`nexbit.dev`)"
+      - "traefik.http.routers.highlighter-web.entrypoints=websecure"
+      - "traefik.http.routers.highlighter-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.highlighter-web.loadbalancer.server.port=3000"
+      - "traefik.http.routers.highlighter-web.priority=1"
+    networks:
+      - traefik
+      - highlighter
+
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    networks:
+      - highlighter
+    labels:
+      - "traefik.enable=false"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - highlighter
+    labels:
+      - "traefik.enable=false"
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  traefik:
+    external: true
+  highlighter:
+    driver: bridge
