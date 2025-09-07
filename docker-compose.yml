@@ -47,6 +47,8 @@ services:
       - highlighter
     depends_on:
       - postgres
+    healthcheck:
+      disable: true
 
   highlighter-web:
     image: ghcr.io/${GITHUB_USERNAME}/highlighter-web:latest
@@ -65,6 +67,8 @@ services:
     networks:
       - traefik
       - highlighter
+    healthcheck:
+      disable: true
 
   postgres:
     image: postgres:15-alpine
